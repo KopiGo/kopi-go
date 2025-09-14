@@ -12,4 +12,44 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Model for the 'Driver' table
+model Driver {
+  driver_id    Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  phone_num    String? // The '?' makes this field optional
+  date_join    DateTime @default(now())
+
+  // Establishes a one-to-many relationship with the 'Sales' table
+  sales        Sales[]
+}
+
+// Model for the 'Product' table
+model Product {
+  product_id   Int      @id @default(autoincrement())
+  name         String
+  price        Float
+  description  String? // The '?' makes this field optional
+
+  // Establishes a one-to-many relationship with the 'Sales' table
+  sales        Sales[]
+}
+
+// Model for the 'Sales' table
+model Sales {
+  sale_timestamp DateTime @id @default(now()) // Using timestamp as ID for this table
+  quantity_sold  Int
+  total_price    Float
+
+  // Foreign key and relationship to 'Driver'
+  driver_id      Int
+  driver         Driver   @relation(fields: [driver_id], references: [driver_id])
+
+  // Foreign key and relationship to 'Product'
+  product_id     Int
+  product        Product  @relation(fields: [product_id], references: [product_id])
 }
