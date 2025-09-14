@@ -26,6 +26,9 @@ model Driver {
 
   // Establishes a one-to-many relationship with the 'Sales' table
   sales        Sales[]
+
+  // New: Establishes a one-to-many relationship with the 'Stock' table
+  stocks       Stock[]
 }
 
 // Model for the 'Product' table
@@ -37,6 +40,9 @@ model Product {
 
   // Establishes a one-to-many relationship with the 'Sales' table
   sales        Sales[]
+
+  // Establishes a one-to-many relationship with the 'Stock' table
+  stocks       Stock[]
 }
 
 // Model for the 'Sales' table
@@ -52,4 +58,19 @@ model Sales {
   // Foreign key and relationship to 'Product'
   product_id     Int
   product        Product  @relation(fields: [product_id], references: [product_id])
+}
+
+// Model for the 'Stock' table
+model Stock {
+  stock_id     Int      @id @default(autoincrement())
+  quantity     Int
+  created_at   DateTime @default(now())
+
+  // Foreign key and relationship to 'Driver'
+  driver_id    Int
+  driver       Driver   @relation(fields: [driver_id], references: [driver_id])
+
+  // Foreign key and relationship to 'Product'
+  product_id   Int
+  product      Product  @relation(fields: [product_id], references: [product_id])
 }
