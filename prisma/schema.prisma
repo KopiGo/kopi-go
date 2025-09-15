@@ -37,6 +37,7 @@ model Product {
   name         String
   price        Float
   description  String? // The '?' makes this field optional
+  image String?
 
   // Establishes a one-to-many relationship with the 'Sales' table
   sales        Sales[]
