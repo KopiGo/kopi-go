@@ -69,3 +69,32 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function GET(req) {
+  try {
+    // ambil driverId dari query (?driverId=1)
+    const { searchParams } = new URL(req.url);
+    const driverId = searchParams.get("driverId");
+
+    if (!driverId) {
+      return NextResponse.json(
+        { error: "driverId is required" },
+        { status: 400 }
+      );
+    }
+
+    const stocks = await prisma.stock.findMany({
+      where: {
+        driver_id: Number(driverId),
+      },
+      include: {
+        product: true,
+      },
+    });
+
+    return NextResponse.json(stocks, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
