@@ -15,63 +15,53 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Model for the 'Driver' table
 model Driver {
-  driver_id    Int      @id @default(autoincrement())
+  driver_id    Int       @id @default(autoincrement())
   name         String
-  email        String   @unique
+  email        String    @unique
   password     String
-  phone_num    String? // The '?' makes this field optional
-  date_join    DateTime @default(now())
+  phone_num    String?
+  date_join    DateTime  @default(now())
 
-  // Establishes a one-to-many relationship with the 'Sales' table
   sales        Sales[]
-
-  // New: Establishes a one-to-many relationship with the 'Stock' table
   stocks       Stock[]
 }
 
-// Model for the 'Product' table
 model Product {
-  product_id   Int      @id @default(autoincrement())
+  product_id   Int       @id @default(autoincrement())
   name         String
   price        Float
-  description  String? // The '?' makes this field optional
-  image String?
+  description  String?
+  image        String?
 
-  // Establishes a one-to-many relationship with the 'Sales' table
-  sales        Sales[]
-
-  // Establishes a one-to-many relationship with the 'Stock' table
+  salesItems   SalesItem[]
   stocks       Stock[]
 }
 
-// Model for the 'Sales' table
 model Sales {
-  sale_timestamp DateTime @id @default(now()) // Using timestamp as ID for this table
-  quantity_sold  Int
-  total_price    Float
-
-  // Foreign key and relationship to 'Driver'
+  sale_id        Int         @id @default(autoincrement())
+  sale_timestamp DateTime    @default(now())
   driver_id      Int
-  driver         Driver   @relation(fields: [driver_id], references: [driver_id])
-
-  // Foreign key and relationship to 'Product'
-  product_id     Int
-  product        Product  @relation(fields: [product_id], references: [product_id])
+  driver         Driver      @relation(fields: [driver_id], references: [driver_id])
+  items          SalesItem[]
 }
 
-// Model for the 'Stock' table
+model SalesItem {
+  id          Int      @id @default(autoincrement())
+  sales_id    Int
+  sales       Sales    @relation(fields: [sales_id], references: [sale_id])
+  product_id  Int
+  product     Product  @relation(fields: [product_id], references: [product_id])
+  quantity    Int
+  price       Float
+}
+
 model Stock {
-  stock_id     Int      @id @default(autoincrement())
-  quantity     Int
-  created_at   DateTime @default(now())
-
-  // Foreign key and relationship to 'Driver'
-  driver_id    Int
-  driver       Driver   @relation(fields: [driver_id], references: [driver_id])
-
-  // Foreign key and relationship to 'Product'
-  product_id   Int
-  product      Product  @relation(fields: [product_id], references: [product_id])
+  stock_id    Int      @id @default(autoincrement())
+  quantity    Int
+  created_at  DateTime @default(now())
+  driver_id   Int
+  driver      Driver   @relation(fields: [driver_id], references: [driver_id])
+  product_id  Int
+  product     Product  @relation(fields: [product_id], references: [product_id])
 }
