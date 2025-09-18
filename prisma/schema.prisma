@@ -1,77 +1,59 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// Model for the 'Driver' table
 model Driver {
-  driver_id    Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  password     String
-  phone_num    String? // The '?' makes this field optional
-  date_join    DateTime @default(now())
-
-  // Establishes a one-to-many relationship with the 'Sales' table
-  sales        Sales[]
-
-  // New: Establishes a one-to-many relationship with the 'Stock' table
-  stocks       Stock[]
+  driver_id Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  phone_num String?
+  date_join DateTime @default(now())
+  sales     Sales[]
+  stocks    Stock[]
 }
 
-// Model for the 'Product' table
 model Product {
-  product_id   Int      @id @default(autoincrement())
-  name         String
-  price        Float
-  description  String? // The '?' makes this field optional
-  image String?
-
-  // Establishes a one-to-many relationship with the 'Sales' table
-  sales        Sales[]
-
-  // Establishes a one-to-many relationship with the 'Stock' table
-  stocks       Stock[]
+  product_id  Int         @id @default(autoincrement())
+  name        String
+  price       Float
+  description String?
+  image       String?
+  SalesItem   SalesItem[]
+  stocks      Stock[]
 }
 
-// Model for the 'Sales' table
 model Sales {
-  sale_timestamp DateTime @id @default(now()) // Using timestamp as ID for this table
-  quantity_sold  Int
-  total_price    Float
-
-  // Foreign key and relationship to 'Driver'
+  sale_timestamp DateTime    @default(now())
   driver_id      Int
-  driver         Driver   @relation(fields: [driver_id], references: [driver_id])
-
-  // Foreign key and relationship to 'Product'
-  product_id     Int
-  product        Product  @relation(fields: [product_id], references: [product_id])
+  sale_id        Int         @id @default(autoincrement())
+  driver         Driver      @relation(fields: [driver_id], references: [driver_id])
+  SalesItem      SalesItem[]
 }
 
-// Model for the 'Stock' table
 model Stock {
-  stock_id     Int      @id @default(autoincrement())
-  quantity     Int
-  created_at   DateTime @default(now())
+  stock_id   Int      @id @default(autoincrement())
+  quantity   Int
+  created_at DateTime @default(now())
+  driver_id  Int
+  product_id Int
+  driver     Driver   @relation(fields: [driver_id], references: [driver_id])
+  product    Product  @relation(fields: [product_id], references: [product_id])
+}
 
-  // Foreign key and relationship to 'Driver'
-  driver_id    Int
-  driver       Driver   @relation(fields: [driver_id], references: [driver_id])
-
-  // Foreign key and relationship to 'Product'
-  product_id   Int
-  product      Product  @relation(fields: [product_id], references: [product_id])
+model SalesItem {
+  id         Int     @id @default(autoincrement())
+  sales_id   Int
+  product_id Int
+  quantity   Int
+  price      Float
+  Product    Product @relation(fields: [product_id], references: [product_id])
+  Sales      Sales   @relation(fields: [sales_id], references: [sale_id])
 }
