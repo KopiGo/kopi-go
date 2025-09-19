@@ -10,50 +10,52 @@ datasource db {
 }
 
 model Driver {
-  driver_id Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  phone_num String?
-  date_join DateTime @default(now())
-  sales     Sales[]
-  stocks    Stock[]
+  driver_id    Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  password     String
+  phone_num    String?
+  date_join    DateTime  @default(now())
+
+  sales        Sales[]
+  stocks       Stock[]
 }
 
 model Product {
-  product_id  Int         @id @default(autoincrement())
-  name        String
-  price       Float
-  description String?
-  image       String?
-  SalesItem   SalesItem[]
-  stocks      Stock[]
+  product_id   Int       @id @default(autoincrement())
+  name         String
+  price        Float
+  description  String?
+  image        String?
+
+  salesItems   SalesItem[]
+  stocks       Stock[]
 }
 
 model Sales {
+  sale_id        Int         @id @default(autoincrement())
   sale_timestamp DateTime    @default(now())
   driver_id      Int
-  sale_id        Int         @id @default(autoincrement())
   driver         Driver      @relation(fields: [driver_id], references: [driver_id])
-  SalesItem      SalesItem[]
-}
-
-model Stock {
-  stock_id   Int      @id @default(autoincrement())
-  quantity   Int
-  created_at DateTime @default(now())
-  driver_id  Int
-  product_id Int
-  driver     Driver   @relation(fields: [driver_id], references: [driver_id])
-  product    Product  @relation(fields: [product_id], references: [product_id])
+  items          SalesItem[]
 }
 
 model SalesItem {
-  id         Int     @id @default(autoincrement())
-  sales_id   Int
-  product_id Int
-  quantity   Int
-  price      Float
-  Product    Product @relation(fields: [product_id], references: [product_id])
-  Sales      Sales   @relation(fields: [sales_id], references: [sale_id])
+  id          Int      @id @default(autoincrement())
+  sales_id    Int
+  sales       Sales    @relation(fields: [sales_id], references: [sale_id])
+  product_id  Int
+  product     Product  @relation(fields: [product_id], references: [product_id])
+  quantity    Int
+  price       Float
+}
+
+model Stock {
+  stock_id    Int      @id @default(autoincrement())
+  quantity    Int
+  created_at  DateTime @default(now())
+  driver_id   Int
+  driver      Driver   @relation(fields: [driver_id], references: [driver_id])
+  product_id  Int
+  product     Product  @relation(fields: [product_id], references: [product_id])
 }
