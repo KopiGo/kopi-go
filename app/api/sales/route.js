@@ -84,3 +84,46 @@ export async function POST(req) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Ambil semua sales item hari ini
+    const salesItems = await prisma.salesItem.findMany({
+      where: {
+        sales: {
+          sale_timestamp: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      },
+    });
+
+    // Hitung total revenue dan quantity
+    let totalRevenue = 0;
+    let totalQuantity = 0;
+
+    salesItems.forEach(item => {
+      // Kalau price = harga per unit, pakai item.price * item.quantity
+      totalRevenue += item.price;
+      totalQuantity += item.quantity;
+    });
+
+    return NextResponse.json(
+      {
+        date: startOfDay.toISOString().split('T')[0], // YYYY-MM-DD
+        totalRevenue,
+        totalQuantity,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
