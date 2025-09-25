@@ -45,10 +45,12 @@ export async function GET() {
       const keuntunganHariIni = totalPenjualanHariIni - totalModalHariIni;
 
       return {
-        nama: product.name,
-        hpp: product.costPrice,
-        jumlahTerjual,
-        keuntunganHariIni,
+        name: product.name,
+        price: product.price, 
+        costPrice: product.costPrice,  
+        quantitySold: jumlahTerjual,
+        todayMargin: keuntunganHariIni,
+        image: product.image,    
       };
     });
 
