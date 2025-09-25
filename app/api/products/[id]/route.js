@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 
 // PUT /api/products/:id
+// PUT /api/products/:id
 export async function PUT(req, { params }) {
   try {
     const body = await req.json();
@@ -15,20 +16,21 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // validasi price
+    // validasi
     if (price !== undefined && typeof price !== "number") {
-      return NextResponse.json(
-        { error: "Price must be a number" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Price must be a number" }, { status: 400 });
+    }
+    if (costPrice !== undefined && typeof costPrice !== "number") {
+      return NextResponse.json({ error: "costPrice must be a number" }, { status: 400 });
     }
 
-    // validasi costPrice
-    if (costPrice !== undefined && typeof costPrice !== "number") {
-      return NextResponse.json(
-        { error: "costPrice must be a number" },
-        { status: 400 }
-      );
+    // hitung kenaikan costPrice
+    let alert = false;
+    if (costPrice !== undefined) {
+      const increasePercent = (costPrice - existingProduct.costPrice) / existingProduct.costPrice;
+      if (increasePercent > 0.06) {
+        alert = true;
+      }
     }
 
     const updatedProduct = await prisma.product.update({
@@ -39,6 +41,7 @@ export async function PUT(req, { params }) {
         description,
         image,
         costPrice,
+        alert
       },
     });
 
