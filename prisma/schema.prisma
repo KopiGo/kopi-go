@@ -45,7 +45,7 @@ model Sales {
   driver         Driver          @relation(fields: [driver_id], references: [driver_id])
   items          SalesItem[]
 
-  payment        PaymentMethod  
+  payment        PaymentMethod   @default(CASH)
 }
 
 
