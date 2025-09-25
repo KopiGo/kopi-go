@@ -19,15 +19,14 @@ export async function GET() {
     today.setHours(0, 0, 0, 0);
 
     const result = products.map((product) => {
-      // total jumlah terjual (semua waktu)
-      const jumlahTerjual = product.salesItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
-
       // filter penjualan hari ini
       const salesHariIni = product.salesItems.filter(
         (item) => new Date(item.sales.sale_timestamp) >= today
+      );
+
+      const jumlahTerjual = salesHariIni.reduce(
+        (sum, item) => sum + item.quantity,
+        0
       );
 
       // total revenue hari ini
