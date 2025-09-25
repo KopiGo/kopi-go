@@ -27,7 +27,7 @@ model Product {
   price        Float
   description  String?
   image        String?
-  costPrice      Float     @default(0)
+  costPrice    Float     @default(0)
 
   salesItems   SalesItem[]
   stocks       Stock[]
