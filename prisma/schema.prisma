@@ -33,13 +33,21 @@ model Product {
   stocks       Stock[]
 }
 
-model Sales {
-  sale_id        Int         @id @default(autoincrement())
-  sale_timestamp DateTime    @default(now())
-  driver_id      Int
-  driver         Driver      @relation(fields: [driver_id], references: [driver_id])
-  items          SalesItem[]
+enum PaymentMethod {
+  QRIS
+  CASH
 }
+
+model Sales {
+  sale_id        Int             @id @default(autoincrement())
+  sale_timestamp DateTime        @default(now())
+  driver_id      Int
+  driver         Driver          @relation(fields: [driver_id], references: [driver_id])
+  items          SalesItem[]
+
+  payment        PaymentMethod  
+}
+
 
 model SalesItem {
   id          Int      @id @default(autoincrement())
