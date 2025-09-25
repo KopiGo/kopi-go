@@ -50,7 +50,8 @@ export async function GET() {
         costPrice: product.costPrice,  
         quantitySold: jumlahTerjual,
         todayMargin: keuntunganHariIni,
-        image: product.image,    
+        image: product.image,
+        alert: product.alert
       };
     });
 
