@@ -1,32 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 
-// GET /api/products/:id
-export async function GET(req, { params }) {
-  try {
-    const product = await prisma.product.findUnique({
-      where: { product_id: Number(params.id) },
-      include: {
-        itemSales: true,
-        stocks: true,
-      },
-    });
-
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(product, { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
 // PUT /api/products/:id
 export async function PUT(req, { params }) {
   try {
     const body = await req.json();
-    const { name, price, description, image } = body;
+    const { name, price, description, image, costPrice } = body;
 
     const existingProduct = await prisma.product.findUnique({
       where: { product_id: Number(params.id) },
@@ -36,10 +15,18 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // validasi harga
+    // validasi price
     if (price !== undefined && typeof price !== "number") {
       return NextResponse.json(
         { error: "Price must be a number" },
+        { status: 400 }
+      );
+    }
+
+    // validasi costPrice
+    if (costPrice !== undefined && typeof costPrice !== "number") {
+      return NextResponse.json(
+        { error: "costPrice must be a number" },
         { status: 400 }
       );
     }
@@ -51,6 +38,7 @@ export async function PUT(req, { params }) {
         price,
         description,
         image,
+        costPrice,
       },
     });
 
@@ -59,6 +47,7 @@ export async function PUT(req, { params }) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 // DELETE /api/products/:id
 export async function DELETE(req, { params }) {
