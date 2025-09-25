@@ -28,6 +28,7 @@ model Product {
   description  String?
   image        String?
   costPrice    Float     @default(0)
+  alert        Boolean   @default(false)
 
   salesItems   SalesItem[]
   stocks       Stock[]

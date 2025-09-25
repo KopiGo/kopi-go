@@ -93,7 +93,7 @@ export async function GET() {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Ambil semua sales item hari ini
+    // Ambil semua sales item hari ini beserta product untuk costPrice
     const salesItems = await prisma.salesItem.findMany({
       where: {
         sales: {
@@ -103,23 +103,27 @@ export async function GET() {
           },
         },
       },
+      include: {
+        product: true, // ambil costPrice
+      },
     });
 
-    // Hitung total revenue dan quantity
     let totalRevenue = 0;
     let totalQuantity = 0;
+    let totalMargin = 0;
 
     salesItems.forEach(item => {
-      // Kalau price = harga per unit, pakai item.price * item.quantity
-      totalRevenue += item.price;
-      totalQuantity += item.quantity;
+      totalRevenue += item.price * item.quantity;           
+      totalQuantity += item.quantity;                    
+      totalMargin += (item.price - (item.product.costPrice + 1797.67)) * item.quantity; 
     });
 
     return NextResponse.json(
       {
-        date: startOfDay.toISOString().split('T')[0], // YYYY-MM-DD
+        date: startOfDay.toISOString().split('T')[0], 
         totalRevenue,
         totalQuantity,
+        totalMargin,
       },
       { status: 200 }
     );

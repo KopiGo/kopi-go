@@ -19,15 +19,14 @@ export async function GET() {
     today.setHours(0, 0, 0, 0);
 
     const result = products.map((product) => {
-      // total jumlah terjual (semua waktu)
-      const jumlahTerjual = product.salesItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
-
       // filter penjualan hari ini
       const salesHariIni = product.salesItems.filter(
         (item) => new Date(item.sales.sale_timestamp) >= today
+      );
+
+      const jumlahTerjual = salesHariIni.reduce(
+        (sum, item) => sum + item.quantity,
+        0
       );
 
       // total revenue hari ini
@@ -38,13 +37,14 @@ export async function GET() {
 
       // total modal hari ini
       const totalModalHariIni = salesHariIni.reduce(
-        (sum, item) => sum + product.costPrice * item.quantity,
+        (sum, item) => sum + (product.costPrice + 1797.67) * item.quantity,
         0
       );
 
       const keuntunganHariIni = totalPenjualanHariIni - totalModalHariIni;
 
       return {
+        id: product.product_id,
         name: product.name,
         price: product.price, 
         costPrice: product.costPrice,  
