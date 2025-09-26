@@ -1,12 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+interface CookieStore {
+  getAll?: () => Array<{ name: string; value: string }>;
+  get?: (name: string) => { value: string } | undefined;
+}
+
+interface CookieHelpers {
+  getAll(): Record<string, string>;
+  setAll(cookies: Record<string, string>): void;
+  get(name: string): string | undefined;
+  set(name: string, value: string, options?: Record<string, unknown>): void;
+  remove(name: string, options?: Record<string, unknown>): void;
+}
+
 export const supabase = async () => {
   // cookies() may be async in some Next runtimes; await to get the store
   // and then provide the cookie helpers required by @supabase/ssr.
-  const cookieStore: any = await cookies()
+  const cookieStore: CookieStore = await cookies()
 
-  const cookieHelpers: any = {
+  const cookieHelpers: CookieHelpers = {
     // read all cookies into a plain object
     getAll() {
       const all: Record<string, string> = {}
@@ -15,7 +28,7 @@ export const supabase = async () => {
         for (const c of entries) {
           if (c?.name) all[c.name] = c.value
         }
-      } catch (e) {
+      } catch {
         // swallow and return empty
       }
       return all
@@ -35,15 +48,15 @@ export const supabase = async () => {
     get(name: string) {
       try {
         return cookieStore.get?.(name)?.value ?? undefined
-      } catch (e) {
+      } catch {
         return undefined
       }
     },
-    set(_name: string, _value: string, _options: any) {
+    set(_name: string, _value: string, _options?: Record<string, unknown>) {
       // no-op
       return
     },
-    remove(_name: string, _options: any) {
+    remove(_name: string, _options?: Record<string, unknown>) {
       // no-op
       return
     },
