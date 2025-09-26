@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../../../../../app/generated/prisma';
+import { PrismaClient } from '../../../../generated/prisma';
 
 // Inisialisasi Prisma Client
 const prisma = new PrismaClient();
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const driverId = parseInt(params.id);
+    const { id } = await params;
+    const driverId = parseInt(id);
 
     if (isNaN(driverId)) {
       return NextResponse.json({ message: 'Invalid driver ID' }, { status: 400 });
