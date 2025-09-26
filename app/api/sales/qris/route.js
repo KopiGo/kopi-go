@@ -31,6 +31,7 @@ export async function GET(req) {
         date: startOfDay.toISOString().split('T')[0], // YYYY-MM-DD
         totalRevenue: Math.floor(revenue._sum.price || 0),
         totalQuantity: revenue._sum.quantity || 0,
+        totalMargin: 0
       },
       { status: 200 }
     );
