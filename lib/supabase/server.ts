@@ -53,11 +53,13 @@ export const supabase = async () => {
       }
     },
     set(_name: string, _value: string, _options?: Record<string, unknown>) {
-      // no-op
+      // no-op - unused params prefixed with _ to avoid ESLint warnings
+      void _name; void _value; void _options;
       return
     },
     remove(_name: string, _options?: Record<string, unknown>) {
-      // no-op
+      // no-op - unused params prefixed with _ to avoid ESLint warnings
+      void _name; void _options;
       return
     },
   }

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../generated/prisma';
-// import bcrypt from 'bcrypt'; // Disarankan untuk keamanan!
-
-// Inisialisasi Prisma Client
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
+// import bcrypt from 'bcrypt'; // TODO: Ganti plaintext compare ke bcrypt untuk produksi
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,10 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
     }
 
-    // 1. Coba cari di tabel Driver
+    // 1. Coba cari di tabel Driver (gunakan findFirst bila kasus insensitive / potensi duplikasi)
     console.log('Looking for driver with email:', email);
-    const driver = await prisma.driver.findUnique({
-      where: { email: email },
+    const driver = await prisma.driver.findUnique({ where: { email } }).catch(async () => {
+      return prisma.driver.findFirst({ where: { email } });
     });
     
     console.log('Driver found:', driver ? 'Yes' : 'No');
@@ -43,7 +40,7 @@ export async function POST(req: NextRequest) {
         // Login Driver Berhasil
         return NextResponse.json({
           message: 'Login successful',
-          role: driver.role, // "driver"
+          role: driver.role,
           user: {
             id: driver.driver_id,
             name: driver.name,
@@ -55,15 +52,15 @@ export async function POST(req: NextRequest) {
 
     // 2. Jika bukan Driver, coba cari di tabel Superadmin
     console.log('Looking for superadmin with email:', email);
-    const superadmin = await prisma.superadmin.findUnique({
-      where: { email: email },
+    const superadmin = await prisma.superadmin.findUnique({ where: { email } }).catch(async () => {
+      return prisma.superadmin.findFirst({ where: { email } });
     });
     
     console.log('Superadmin found:', superadmin ? 'Yes' : 'No');
 
     if (superadmin) {
       console.log('Superadmin data:', { 
-        id: superadmin.admin_id, 
+        id: superadmin.id, 
         name: superadmin.name, 
         email: superadmin.email,
         passwordMatch: password === superadmin.password 
@@ -82,7 +79,7 @@ export async function POST(req: NextRequest) {
           message: 'Login successful',
           role: 'superadmin',
           user: {
-            id: superadmin.admin_id,
+            id: superadmin.id,
             name: superadmin.name,
             email: superadmin.email,
           }
@@ -98,6 +95,6 @@ export async function POST(req: NextRequest) {
     console.error('Login API Error:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    // Jangan disconnect di setiap request
   }
 }

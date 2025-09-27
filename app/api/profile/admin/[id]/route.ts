@@ -1,49 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../../../generated/prisma';
+import { prisma } from '../../../../../lib/prisma';
 
-// Inisialisasi Prisma Client
-const prisma = new PrismaClient();
+interface AdminRow {
+  admin_id?: number;
+  id?: number;
+  name: string;
+  email: string;
+  created_at: Date;
+}
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+function extractId(row: AdminRow): number | null {
+  if (typeof row.admin_id === 'number') return row.admin_id;
+  if (typeof row.id === 'number') return row.id;
+  return null;
+}
+
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
-    const adminId = parseInt(id);
-
-    if (isNaN(adminId)) {
+    const { id } = await ctx.params;
+    const adminId = Number(id);
+    if (Number.isNaN(adminId)) {
       return NextResponse.json({ message: 'Invalid admin ID' }, { status: 400 });
     }
 
-    // Ambil data superadmin berdasarkan ID
-    const admin = await prisma.superadmin.findUnique({
-      where: { admin_id: adminId },
-      select: {
-        admin_id: true,
-        name: true,
-        email: true,
-        created_at: true,
-      }
-    });
+    const rows = await prisma.$queryRaw<AdminRow[]>`
+      SELECT admin_id, id, name, email, created_at
+      FROM public.superadmin
+      WHERE (admin_id = ${adminId} OR id = ${adminId})
+      LIMIT 1
+    `;
 
+    const admin = rows[0];
     if (!admin) {
       return NextResponse.json({ message: 'Admin not found' }, { status: 404 });
     }
 
-    // Return profile data
+    const resolvedId = extractId(admin);
+    if (resolvedId === null) {
+      return NextResponse.json({ message: 'Admin ID missing' }, { status: 500 });
+    }
+
     return NextResponse.json({
       profile: {
-        id: admin.admin_id,
+        id: resolvedId,
         name: admin.name,
         email: admin.email,
-        phone_num: null, // Admin doesn't have phone_num field
+        phone_num: null,
         date_join: admin.created_at.toISOString(),
-        role: 'superadmin',
+        role: 'superadmin'
       }
     }, { status: 200 });
-
-  } catch (error) {
-    console.error('Admin Profile API Error:', error);
+  } catch (err) {
+    console.error('Admin Profile API Error:', err);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

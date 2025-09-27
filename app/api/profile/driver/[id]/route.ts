@@ -1,51 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../../../generated/prisma';
+import { prisma } from '../../../../../lib/prisma';
 
-// Inisialisasi Prisma Client
-const prisma = new PrismaClient();
+interface DriverRow {
+  driver_id?: number;
+  id?: number;
+  name: string;
+  email: string;
+  phone_num?: string | null;
+  date_join?: Date;
+  role?: string;
+}
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+function extractDriverId(row: DriverRow): number | null {
+  if (typeof row.driver_id === 'number') return row.driver_id;
+  if (typeof row.id === 'number') return row.id;
+  return null;
+}
+
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
-    const driverId = parseInt(id);
-
-    if (isNaN(driverId)) {
+    const { id } = await ctx.params;
+    const driverId = Number(id);
+    if (!Number.isInteger(driverId)) {
       return NextResponse.json({ message: 'Invalid driver ID' }, { status: 400 });
     }
 
-    // Ambil data driver berdasarkan ID
-    const driver = await prisma.driver.findUnique({
-      where: { driver_id: driverId },
-      select: {
-        driver_id: true,
-        name: true,
-        email: true,
-        phone_num: true,
-        date_join: true,
-        role: true,
-      }
-    });
+    const rows = await prisma.$queryRaw<DriverRow[]>`
+      SELECT driver_id, id, name, email, phone_num, date_join, role
+      FROM public.driver
+      WHERE (driver_id = ${driverId} OR id = ${driverId})
+      LIMIT 1
+    `;
 
+    const driver = rows[0];
     if (!driver) {
       return NextResponse.json({ message: 'Driver not found' }, { status: 404 });
     }
 
-    // Return profile data
+    const resolvedId = extractDriverId(driver);
+    if (resolvedId === null) {
+      return NextResponse.json({ message: 'Driver ID missing' }, { status: 500 });
+    }
+
     return NextResponse.json({
       profile: {
-        id: driver.driver_id,
+        id: resolvedId,
         name: driver.name,
         email: driver.email,
-        phone_num: driver.phone_num,
-        date_join: driver.date_join.toISOString(),
-        role: driver.role,
+        phone_num: driver.phone_num ?? null,
+        date_join: (driver.date_join ?? new Date()).toISOString(),
+        role: driver.role ?? 'driver',
       }
     }, { status: 200 });
 
-  } catch (error) {
-    console.error('Driver Profile API Error:', error);
+  } catch (err) {
+    console.error('Driver Profile API Error:', err);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
