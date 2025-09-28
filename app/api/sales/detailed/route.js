@@ -30,9 +30,9 @@ export async function GET(req) {
           },
         },
         include: {
-          items: {
+          SalesItem: {
             include: {
-              product: true,
+              Product: true,
             },
           },
         },
@@ -42,7 +42,7 @@ export async function GET(req) {
       let totalRevenue = 0;
   
       salesData.forEach(sale => {
-        sale.items.forEach(item => {
+        sale.item.forEach(item => {
           const productId = item.product_id;
           const productName = item.product.name;
           
