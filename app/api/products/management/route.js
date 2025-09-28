@@ -7,39 +7,32 @@ export async function GET() {
     // ambil semua produk + sales
     const products = await prisma.product.findMany({
       include: {
-        salesItems: {
+        salesItems: { // sesuai nama relation di schema (SalesItem[] pada model Sales)
           include: {
-            sales: true, // ambil timestamp penjualan
-          },
-        },
-      },
+            Sales: true,
+          }
+        }
+      }
     });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const result = products.map((product) => {
-      // filter penjualan hari ini
-      const salesHariIni = product.salesItems.filter(
-        (item) => new Date(item.sales.sale_timestamp) >= today
-      );
+      const salesItems = product.salesItems || [];
+      // filter penjualan hari ini (gunakan Sales relation)
+      const salesHariIni = salesItems.filter((item) => {
+        if (!item.Sales) return false;
+        return new Date(item.Sales.sale_timestamp) >= today;
+      });
 
-      const jumlahTerjual = salesHariIni.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
+      const jumlahTerjual = salesHariIni.reduce((sum, item) => sum + item.quantity, 0);
 
       // total revenue hari ini
-      const totalPenjualanHariIni = salesHariIni.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
+      const totalPenjualanHariIni = salesHariIni.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
       // total modal hari ini
-      const totalModalHariIni = salesHariIni.reduce(
-        (sum, item) => sum + (product.costPrice + 1797.67) * item.quantity,
-        0
-      );
+      const totalModalHariIni = salesHariIni.reduce((sum, item) => sum + (product.costPrice + 1797.67) * item.quantity, 0);
 
       const keuntunganHariIni = totalPenjualanHariIni - totalModalHariIni;
 

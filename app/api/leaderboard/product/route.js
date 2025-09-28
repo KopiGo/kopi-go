@@ -10,9 +10,9 @@ export async function GET() {
     endOfDay.setHours(23, 59, 59, 999);
 
     // ambil semua sales items hari ini beserta product
-    const salesItems = await prisma.salesItem.findMany({
+    const salesItems = await prisma.salesItems.findMany({
       where: {
-        sales: {
+        Sales: {
           sale_timestamp: {
             gte: startOfDay,
             lte: endOfDay,
