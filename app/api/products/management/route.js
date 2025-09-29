@@ -35,7 +35,7 @@ export async function GET() {
 
       // total revenue hari ini
       const totalPenjualanHariIni = salesHariIni.reduce(
-        (sum, item) => sum + item.price * item.quantity,
+        (sum, item) => sum + item.price,
         0
       );
 
