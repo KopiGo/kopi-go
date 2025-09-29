@@ -33,8 +33,8 @@ export async function GET() {
     const driverMap = {};
 
     salesItems.forEach(item => {
-      const driverId = item.sales.driver_id;
-      const driverName = item.sales.driver.name;
+      const driverId = item.Sales.driver_id;
+      const driverName = item.Sales.Driver.name;
 
       if (!driverMap[driverId]) {
         driverMap[driverId] = {

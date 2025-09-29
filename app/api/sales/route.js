@@ -5,7 +5,6 @@ export async function POST(req) {
   try {
     const { driver_id, items } = await req.json();
 
-    // Validate required fields
     if (!driver_id || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: 'Driver ID and items array are required' },
@@ -13,52 +12,54 @@ export async function POST(req) {
       );
     }
 
-    // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async (prisma) => {
-      // Create the sales record
-      const sale = await prisma.sales.create({
+    const result = await prisma.$transaction(async (prismaTx) => {
+      // Buat sales record
+      const sale = await prismaTx.sales.create({
         data: {
-          driver_id: driver_id,
+          driver_id,
           sale_timestamp: new Date(),
         },
       });
 
-      // Create sales items and update stock
       const salesItems = [];
+
       for (const item of items) {
         const { product_id, quantity, price } = item;
-        
-        // Create sales item
-        const salesItem = await prisma.salesItem.create({
+
+        // Ambil stok terbaru
+        const currentStock = await prismaTx.stock.findFirst({
+          where: { product_id, driver_id },
+          orderBy: { created_at: 'desc' },
+        });
+
+        const currentQuantity = currentStock ? currentStock.quantity : 0;
+
+        // 🔹 Validasi stok cukup
+        if (quantity > currentQuantity) {
+          throw new Error(
+            `Stok tidak cukup untuk produk ${product_id}. Stok tersedia: ${currentQuantity}, diminta: ${quantity}`
+          );
+        }
+
+        // Buat sales item
+        const salesItem = await prismaTx.salesItem.create({
           data: {
             sales_id: sale.sale_id,
-            product_id: product_id,
-            quantity: quantity,
-            price: price,
+            product_id,
+            quantity,
+            price,
           },
         });
         salesItems.push(salesItem);
 
-        // Get current stock for this product and driver
-        const currentStock = await prisma.stock.findFirst({
-          where: {
-            product_id: product_id,
-            driver_id: driver_id,
-          },
-          orderBy: {
-            created_at: 'desc',
-          },
-        });
+        // Hitung stok baru
+        const newQuantity = currentQuantity - quantity;
 
-        // Calculate new stock quantity
-        const currentQuantity = currentStock ? currentStock.quantity : 0;
-        const newQuantity = Math.max(0, currentQuantity - quantity);
-
-        // Create new stock record with updated quantity
-        await prisma.stock.create({
+        // Buat record stok baru
+        await prismaTx.stock.create({
           data: {
-            product_id: product_id,
-            driver_id: driver_id,
+            product_id,
+            driver_id,
             quantity: newQuantity,
           },
         });
@@ -68,22 +69,19 @@ export async function POST(req) {
     });
 
     return NextResponse.json(
-      { 
+      {
         message: 'Order created successfully',
         sale_id: result.sale.sale_id,
-        items_count: result.salesItems.length
+        items_count: result.salesItems.length,
       },
       { status: 201 }
     );
-
   } catch (error) {
     console.error('Error creating sale:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 export async function GET() {
   try {
@@ -104,7 +102,7 @@ export async function GET() {
         },
       },
       include: {
-        product: true, // ambil costPrice
+        Product: true, // ambil costPrice
       },
     });
 
@@ -115,7 +113,7 @@ export async function GET() {
     salesItems.forEach(item => {
       totalRevenue += item.price * item.quantity;           
       totalQuantity += item.quantity;                    
-      totalMargin += (item.price - (item.product.costPrice + 1797.67)) * item.quantity; 
+      totalMargin += (item.price - (item.Product.costPrice + 1797.67)) * item.quantity; 
     });
 
     return NextResponse.json(

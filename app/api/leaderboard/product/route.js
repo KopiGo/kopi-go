@@ -10,7 +10,7 @@ export async function GET() {
     endOfDay.setHours(23, 59, 59, 999);
 
     // ambil semua sales items hari ini beserta product
-    const salesItems = await prisma.salesItems.findMany({
+    const salesItems = await prisma.SalesItem.findMany({
       where: {
         Sales: {
           sale_timestamp: {
@@ -20,7 +20,7 @@ export async function GET() {
         },
       },
       include: {
-        product: true,
+        Product: true,
       },
     });
 
@@ -29,12 +29,14 @@ export async function GET() {
 
     salesItems.forEach(item => {
       const productId = item.product_id;
-      const productName = item.product.name;
+      const productName = item.Product.name;
+      const productImage = item.Product.image
 
       if (!productMap[productId]) {
         productMap[productId] = {
           productId,
           productName,
+          productImage,
           totalRevenue: item.price,
           totalQuantity: item.quantity,
         };

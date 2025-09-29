@@ -3,12 +3,14 @@ import { prisma } from '../../../../../../lib/prisma';
 
 export async function GET(req, { params }) {
   try {
-    const driverId = Number(params.id);
+    const { id } = await params;
+    const driverId = Number(id);
+
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get('date');
 
     let startOfDay, endOfDay;
-    
+
     if (dateParam) {
       const selectedDate = new Date(dateParam);
       startOfDay = new Date(selectedDate);
@@ -16,14 +18,12 @@ export async function GET(req, { params }) {
       endOfDay = new Date(selectedDate);
       endOfDay.setHours(23, 59, 59, 999);
     } else {
-      // Default to today
       startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
     }
 
-    // Get detailed sales data for the driver on the specified date
     const salesData = await prisma.sales.findMany({
       where: {
         driver_id: driverId,
@@ -32,17 +32,23 @@ export async function GET(req, { params }) {
           lte: endOfDay,
         },
       },
+      include: {
+        SalesItem: {
+          include: {
+            Product: true,
+          },
+        },
+      },
     });
 
-    // Group sales items by product
-    const productSales = {};
+    const productSales = {}; // ⬅️ plain object, bukan Record<number, any>
     let totalRevenue = 0;
 
-    salesData.forEach(sale => {
-      sale.items.forEach(item => {
+    salesData.forEach((sale) => {
+      sale.SalesItem.forEach((item) => {
         const productId = item.product_id;
-        const productName = item.product.name;
-        
+        const productName = item.Product?.name || "Unknown";
+
         if (!productSales[productId]) {
           productSales[productId] = {
             product_id: productId,
@@ -51,21 +57,21 @@ export async function GET(req, { params }) {
             total_revenue: 0,
           };
         }
-        
+
         productSales[productId].total_quantity += item.quantity;
-        productSales[productId].total_revenue += (item.quantity * item.price);
-        totalRevenue += (item.quantity * item.price);
+        productSales[productId].total_revenue += item.quantity * item.price;
+        totalRevenue += item.quantity * item.price;
       });
     });
 
-    const salesSummary = Object.values(productSales);
-
-    return NextResponse.json({
-      sales_summary: salesSummary,
-      total_revenue: totalRevenue,
-      date: dateParam || new Date().toISOString().split('T')[0]
-    }, { status: 200 });
-
+    return NextResponse.json(
+      {
+        sales_summary: Object.values(productSales),
+        total_revenue: totalRevenue,
+        date: dateParam || new Date().toISOString().split('T')[0],
+      },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

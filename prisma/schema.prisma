@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../app/generated/prisma"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
@@ -371,8 +372,8 @@ model Product {
   image       String?
   costPrice   Float       @default(0)
   alert       Boolean     @default(false)
-  salesItems   SalesItem[]
-  stocks       Stock[]
+  salesItems  SalesItem[]
+  stocks      Stock[]
 
   @@schema("public")
 }
