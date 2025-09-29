@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 // GET /api/stocks
 export async function GET() {
@@ -42,11 +43,10 @@ export async function POST(req) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Tentukan tanggal hari ini
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // Tentukan tanggal hari ini di WIB
+    const nowJakarta = DateTime.now().setZone('Asia/Jakarta');
+    const todayStart = nowJakarta.startOf('day').toJSDate();
+    const todayEnd = nowJakarta.endOf('day').toJSDate();
 
     // Cek apakah stock sudah ada hari ini
     const existingStock = await prisma.stock.findFirst({
@@ -62,10 +62,10 @@ export async function POST(req) {
 
     let stock;
     if (existingStock) {
-      // Update stock yang sudah ada
+      // Tambahkan quantity ke stock yang sudah ada
       stock = await prisma.stock.update({
         where: { stock_id: existingStock.stock_id },
-        data: { quantity }, // bisa juga pakai `quantity: existingStock.quantity + quantity` kalau ingin ditambah
+        data: { quantity: existingStock.quantity + quantity },
       });
     } else {
       // Buat stock baru
@@ -83,5 +83,7 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
 
 
