@@ -127,7 +127,7 @@ export async function GET() {
     salesItems.forEach(item => {
       totalRevenue += item.price;
       totalQuantity += item.quantity;
-      totalMargin += (item.price - (item.Product.costPrice + 1797.67));
+      totalMargin += (item.price - ((item.Product.costPrice + 1797.67)*item.quantity));
     });
 
     return NextResponse.json(

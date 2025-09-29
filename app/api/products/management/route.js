@@ -35,13 +35,13 @@ export async function GET() {
 
       // total revenue hari ini
       const totalPenjualanHariIni = salesHariIni.reduce(
-        (sum, item) => sum + item.price * item.quantity,
+        (sum, item) => sum + item.price,
         0
       );
 
       // total modal hari ini
       const totalModalHariIni = salesHariIni.reduce(
-        (sum, item) => sum + (product.costPrice + 1797.67),
+        (sum, item) => sum + (product.costPrice + 1797.67) * item.quantity,
         0
       );
 
