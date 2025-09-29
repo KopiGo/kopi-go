@@ -14,18 +14,30 @@ export async function POST(req) {
     }
 
     const result = await prisma.$transaction(async (prismaTx) => {
+      // Waktu sale di WIB
+      const saleTime = DateTime.now().setZone('Asia/Jakarta').toJSDate();
+
       // Buat sales record
       const sale = await prismaTx.sales.create({
         data: {
           driver_id,
-          sale_timestamp: new Date(),
+          sale_timestamp: saleTime,
         },
       });
 
       const salesItems = [];
 
       for (const item of items) {
-        const { product_id, quantity, price } = item;
+        const { product_id, quantity } = item;
+
+        // Ambil harga product
+        const product = await prismaTx.product.findUnique({
+          where: { product_id },
+        });
+        if (!product) throw new Error(`Produk ${product_id} tidak ditemukan`);
+
+        const pricePerItem = product.price; // harga satuan
+        const totalPrice = pricePerItem * quantity; // harga total = price × quantity
 
         // Ambil stok terbaru
         const currentStock = await prismaTx.stock.findFirst({
@@ -48,7 +60,7 @@ export async function POST(req) {
             sales_id: sale.sale_id,
             product_id,
             quantity,
-            price,
+            price: totalPrice, // pakai harga total
           },
         });
         salesItems.push(salesItem);
@@ -82,6 +94,7 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 export async function GET() {
   try {
