@@ -59,8 +59,8 @@ export async function GET(req, { params }) {
         }
 
         productSales[productId].total_quantity += item.quantity;
-        productSales[productId].total_revenue += item.quantity * item.price;
-        totalRevenue += item.quantity * item.price;
+        productSales[productId].total_revenue += item.price;
+        totalRevenue += item.price;
       });
     });
 
