@@ -41,7 +41,7 @@ export async function GET() {
 
       // total modal hari ini
       const totalModalHariIni = salesHariIni.reduce(
-        (sum, item) => sum + (product.costPrice + 1797.67) * item.quantity,
+        (sum, item) => sum + (product.costPrice + 1797.67),
         0
       );
 
