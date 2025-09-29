@@ -69,13 +69,10 @@ export async function POST(req) {
         const newQuantity = currentQuantity - quantity;
 
         // Buat record stok baru
-        await prismaTx.stock.create({
-          data: {
-            product_id,
-            driver_id,
-            quantity: newQuantity,
-          },
-        });
+        await prismaTx.stock.update({
+          where: { stock_id: currentStock.stock_id },
+          data: { quantity: newQuantity },
+        });        
       }
 
       return { sale, salesItems };
