@@ -65,7 +65,7 @@ export async function POST(req) {
       // Tambahkan quantity ke stock yang sudah ada
       stock = await prisma.stock.update({
         where: { stock_id: existingStock.stock_id },
-        data: { quantity: existingStock.quantity + quantity },
+        data: { quantity: quantity },
       });
     } else {
       // Buat stock baru
