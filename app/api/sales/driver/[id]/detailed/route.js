@@ -18,7 +18,6 @@ export async function GET(req, { params }) {
       endOfDay = new Date(selectedDate);
       endOfDay.setHours(23, 59, 59, 999);
     } else {
-      // default ke hari ini
       startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       endOfDay = new Date();
@@ -42,13 +41,13 @@ export async function GET(req, { params }) {
       },
     });
 
-    const productSales = {};
+    const productSales = {}; // ⬅️ plain object, bukan Record<number, any>
     let totalRevenue = 0;
 
     salesData.forEach((sale) => {
       sale.SalesItem.forEach((item) => {
         const productId = item.product_id;
-        const productName = item.Product.product_name;
+        const productName = item.Product?.name || "Unknown";
 
         if (!productSales[productId]) {
           productSales[productId] = {
