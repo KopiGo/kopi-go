@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { DateTime } from 'luxon';
 
+
 export async function POST(req) {
   try {
     const { driver_id, items } = await req.json();
@@ -36,21 +37,33 @@ export async function POST(req) {
         });
         if (!product) throw new Error(`Produk ${product_id} tidak ditemukan`);
 
-        const pricePerItem = product.price; // harga satuan
-        const totalPrice = pricePerItem * quantity; // harga total = price × quantity
+        const totalPrice = product.price * quantity; // harga total = price × quantity
 
-        // Ambil stok terbaru
+        // Tentukan range hari ini WIB
+        const todayStart = DateTime.now().setZone('Asia/Jakarta').startOf('day').toJSDate();
+        const todayEnd = DateTime.now().setZone('Asia/Jakarta').endOf('day').toJSDate();
+
+        // Ambil stok hari ini
         const currentStock = await prismaTx.stock.findFirst({
-          where: { product_id, driver_id },
+          where: {
+            product_id,
+            driver_id,
+            created_at: {
+              gte: todayStart,
+              lte: todayEnd,
+            },
+          },
           orderBy: { created_at: 'desc' },
         });
 
-        const currentQuantity = currentStock ? currentStock.quantity : 0;
+        if (!currentStock) {
+          throw new Error(`Stok untuk produk ${product_id} hari ini belum tersedia`);
+        }
 
         // 🔹 Validasi stok cukup
-        if (quantity > currentQuantity) {
+        if (quantity > currentStock.quantity) {
           throw new Error(
-            `Stok tidak cukup untuk produk ${product_id}. Stok tersedia: ${currentQuantity}, diminta: ${quantity}`
+            `Stok tidak cukup untuk produk ${product_id}. Stok tersedia: ${currentStock.quantity}, diminta: ${quantity}`
           );
         }
 
@@ -60,19 +73,16 @@ export async function POST(req) {
             sales_id: sale.sale_id,
             product_id,
             quantity,
-            price: totalPrice, // pakai harga total
+            price: totalPrice,
           },
         });
         salesItems.push(salesItem);
 
-        // Hitung stok baru
-        const newQuantity = currentQuantity - quantity;
-
-        // Buat record stok baru
+        // Update stok hari ini
         await prismaTx.stock.update({
           where: { stock_id: currentStock.stock_id },
-          data: { quantity: newQuantity },
-        });        
+          data: { quantity: currentStock.quantity - quantity },
+        });
       }
 
       return { sale, salesItems };
@@ -91,6 +101,7 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 
 export async function GET() {
