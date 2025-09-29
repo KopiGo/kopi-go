@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function GET(req, { params }) {
   const driverId = parseInt(params.id);
 
-  // Buat range tanggal hari ini
-  const today = new Date();
-  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+  // Waktu hari ini di WIB
+  const todayJakarta = DateTime.now().setZone('Asia/Jakarta');
+  const startOfDay = todayJakarta.startOf('day').toJSDate();
+  const endOfDay = todayJakarta.endOf('day').toJSDate();
 
   try {
     // Ambil semua produk
@@ -41,4 +42,3 @@ export async function GET(req, { params }) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

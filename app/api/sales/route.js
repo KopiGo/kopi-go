@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function POST(req) {
   try {
@@ -82,14 +83,14 @@ export async function POST(req) {
   }
 }
 
-
 export async function GET() {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Waktu sekarang di Jakarta
+    const nowJakarta = DateTime.now().setZone('Asia/Jakarta');
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // Start & end of day di WIB
+    const startOfDay = nowJakarta.startOf('day').toJSDate();
+    const endOfDay = nowJakarta.endOf('day').toJSDate();
 
     // Ambil semua sales item hari ini beserta product untuk costPrice
     const salesItems = await prisma.salesItem.findMany({
@@ -111,14 +112,14 @@ export async function GET() {
     let totalMargin = 0;
 
     salesItems.forEach(item => {
-      totalRevenue += item.price * item.quantity;           
-      totalQuantity += item.quantity;                    
-      totalMargin += (item.price - (item.Product.costPrice + 1797.67)) * item.quantity; 
+      totalRevenue += item.price * item.quantity;
+      totalQuantity += item.quantity;
+      totalMargin += (item.price - (item.Product.costPrice + 1797.67)) * item.quantity;
     });
 
     return NextResponse.json(
       {
-        date: startOfDay.toISOString().split('T')[0], 
+        date: nowJakarta.toFormat('yyyy-MM-dd'), // tanggal sesuai WIB
         totalRevenue,
         totalQuantity,
         totalMargin,
@@ -129,3 +130,4 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

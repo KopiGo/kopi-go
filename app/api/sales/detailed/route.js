@@ -1,25 +1,25 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get('date');
 
-    let startOfDay, endOfDay;
+    let selectedDateJakarta;
 
     if (dateParam) {
-      const selectedDate = new Date(dateParam);
-      startOfDay = new Date(selectedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      endOfDay = new Date(selectedDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      // pakai tanggal dari query param, konversi ke WIB
+      selectedDateJakarta = DateTime.fromISO(dateParam, { zone: 'Asia/Jakarta' });
     } else {
-      startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+      // pakai tanggal hari ini di WIB
+      selectedDateJakarta = DateTime.now().setZone('Asia/Jakarta');
     }
+
+    // start & end of day di WIB
+    const startOfDay = selectedDateJakarta.startOf('day').toJSDate();
+    const endOfDay = selectedDateJakarta.endOf('day').toJSDate();
 
     // Ambil semua sales di tanggal tersebut
     const salesData = await prisma.sales.findMany({
@@ -67,7 +67,7 @@ export async function GET(req) {
       {
         sales_summary: salesSummary,
         total_revenue: totalRevenue,
-        date: dateParam || new Date().toISOString().split('T')[0],
+        date: selectedDateJakarta.toFormat('yyyy-MM-dd'), // tanggal sesuai WIB
       },
       { status: 200 }
     );
@@ -75,3 +75,4 @@ export async function GET(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

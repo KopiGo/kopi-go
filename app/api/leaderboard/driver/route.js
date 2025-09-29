@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function GET() {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Waktu sekarang di Jakarta
+    const nowJakarta = DateTime.now().setZone('Asia/Jakarta');
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // startOfDay dan endOfDay di Jakarta
+    const startOfDay = nowJakarta.startOf('day').toJSDate();
+    const endOfDay = nowJakarta.endOf('day').toJSDate();
 
     // ambil semua sales items hari ini beserta driver
     const salesItems = await prisma.salesItem.findMany({
