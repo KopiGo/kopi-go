@@ -29,13 +29,6 @@ export async function GET(req) {
             lte: endOfDay,
           },
         },
-        include: {
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
       });
   
       const productSales = {};

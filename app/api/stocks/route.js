@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const stocks = await prisma.stock.findMany({
       include: {
-        driver: true,
+        Driver: true,
         product: true,
       },
     });

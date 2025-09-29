@@ -32,13 +32,6 @@ export async function GET(req, { params }) {
           lte: endOfDay,
         },
       },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
     });
 
     // Group sales items by product

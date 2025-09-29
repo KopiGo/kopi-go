@@ -14,7 +14,7 @@ export async function GET(req, { params }) {
     // ambil semua sales items hari ini untuk driver
     const salesItems = await prisma.salesItem.findMany({
       where: {
-        sales: {
+        Sales: {
           driver_id: driverId,
           sale_timestamp: {
             gte: startOfDay,

@@ -15,7 +15,7 @@ export async function GET(req, { params }) {
     const salesItems = await prisma.salesItem.findMany({
       where: {
         product_id: productId,
-        sales: {
+        Sales: {
           sale_timestamp: {
             gte: startOfDay,
             lte: endOfDay,

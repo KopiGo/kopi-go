@@ -96,7 +96,7 @@ export async function GET() {
     // Ambil semua sales item hari ini beserta product untuk costPrice
     const salesItems = await prisma.salesItem.findMany({
       where: {
-        sales: {
+        Sales: {
           sale_timestamp: {
             gte: startOfDay,
             lte: endOfDay,
