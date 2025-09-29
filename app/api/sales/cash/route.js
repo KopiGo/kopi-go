@@ -12,7 +12,7 @@ export async function GET() {
     // hitung total revenue & quantity CASH untuk hari ini
     const revenue = await prisma.salesItem.aggregate({
       where: {
-        sales: {
+        Sales: {
           payment: 'CASH',
           sale_timestamp: {
             gte: startOfDay,
