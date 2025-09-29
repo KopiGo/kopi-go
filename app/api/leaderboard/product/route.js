@@ -29,12 +29,14 @@ export async function GET() {
 
     salesItems.forEach(item => {
       const productId = item.product_id;
-      const productName = item.product.name;
+      const productName = item.Product.name;
+      const productImage = item.Product.image
 
       if (!productMap[productId]) {
         productMap[productId] = {
           productId,
           productName,
+          productImage,
           totalRevenue: item.price,
           totalQuantity: item.quantity,
         };
