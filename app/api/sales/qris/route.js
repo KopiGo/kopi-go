@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function GET() {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // waktu sekarang di Jakarta
+    const nowJakarta = DateTime.now().setZone('Asia/Jakarta');
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // start & end of day di WIB
+    const startOfDay = nowJakarta.startOf('day').toJSDate();
+    const endOfDay = nowJakarta.endOf('day').toJSDate();
 
     // hitung total revenue & quantity QRIS untuk hari ini
     const revenue = await prisma.salesItem.aggregate({
@@ -28,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        date: startOfDay.toISOString().split('T')[0], // YYYY-MM-DD
+        date: nowJakarta.toFormat('yyyy-MM-dd'), // tanggal sesuai WIB
         totalRevenue: Math.floor(revenue._sum.price || 0),
         totalQuantity: revenue._sum.quantity || 0,
         totalMargin: 0

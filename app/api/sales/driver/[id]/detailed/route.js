@@ -1,28 +1,28 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function GET(req, { params }) {
   try {
-    const { id } = await params;
-    const driverId = Number(id);
+    const driverId = Number(params.id);
 
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get('date');
 
     let startOfDay, endOfDay;
+    let selectedDateJakarta;
 
     if (dateParam) {
-      const selectedDate = new Date(dateParam);
-      startOfDay = new Date(selectedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      endOfDay = new Date(selectedDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      // pakai tanggal dari query param
+      selectedDateJakarta = DateTime.fromISO(dateParam, { zone: 'Asia/Jakarta' });
     } else {
-      startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+      // pakai tanggal hari ini di WIB
+      selectedDateJakarta = DateTime.now().setZone('Asia/Jakarta');
     }
+
+    // start & end of day di WIB
+    startOfDay = selectedDateJakarta.startOf('day').toJSDate();
+    endOfDay = selectedDateJakarta.endOf('day').toJSDate();
 
     const salesData = await prisma.sales.findMany({
       where: {
@@ -41,7 +41,7 @@ export async function GET(req, { params }) {
       },
     });
 
-    const productSales = {}; // ⬅️ plain object, bukan Record<number, any>
+    const productSales = {};
     let totalRevenue = 0;
 
     salesData.forEach((sale) => {
@@ -59,8 +59,8 @@ export async function GET(req, { params }) {
         }
 
         productSales[productId].total_quantity += item.quantity;
-        productSales[productId].total_revenue += item.quantity * item.price;
-        totalRevenue += item.quantity * item.price;
+        productSales[productId].total_revenue += item.price;
+        totalRevenue += item.price;
       });
     });
 
@@ -68,7 +68,7 @@ export async function GET(req, { params }) {
       {
         sales_summary: Object.values(productSales),
         total_revenue: totalRevenue,
-        date: dateParam || new Date().toISOString().split('T')[0],
+        date: selectedDateJakarta.toFormat('yyyy-MM-dd'), // tanggal sesuai WIB
       },
       { status: 200 }
     );

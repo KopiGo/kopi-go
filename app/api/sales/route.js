@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { DateTime } from 'luxon';
+
 
 export async function POST(req) {
   try {
@@ -13,31 +15,55 @@ export async function POST(req) {
     }
 
     const result = await prisma.$transaction(async (prismaTx) => {
+      // Waktu sale di WIB
+      const saleTime = DateTime.now().setZone('Asia/Jakarta').toJSDate();
+
       // Buat sales record
       const sale = await prismaTx.sales.create({
         data: {
           driver_id,
-          sale_timestamp: new Date(),
+          sale_timestamp: saleTime,
         },
       });
 
       const salesItems = [];
 
       for (const item of items) {
-        const { product_id, quantity, price } = item;
+        const { product_id, quantity } = item;
 
-        // Ambil stok terbaru
+        // Ambil harga product
+        const product = await prismaTx.product.findUnique({
+          where: { product_id },
+        });
+        if (!product) throw new Error(`Produk ${product_id} tidak ditemukan`);
+
+        const totalPrice = product.price * quantity; // harga total = price × quantity
+
+        // Tentukan range hari ini WIB
+        const todayStart = DateTime.now().setZone('Asia/Jakarta').startOf('day').toJSDate();
+        const todayEnd = DateTime.now().setZone('Asia/Jakarta').endOf('day').toJSDate();
+
+        // Ambil stok hari ini
         const currentStock = await prismaTx.stock.findFirst({
-          where: { product_id, driver_id },
+          where: {
+            product_id,
+            driver_id,
+            created_at: {
+              gte: todayStart,
+              lte: todayEnd,
+            },
+          },
           orderBy: { created_at: 'desc' },
         });
 
-        const currentQuantity = currentStock ? currentStock.quantity : 0;
+        if (!currentStock) {
+          throw new Error(`Stok untuk produk ${product_id} hari ini belum tersedia`);
+        }
 
         // 🔹 Validasi stok cukup
-        if (quantity > currentQuantity) {
+        if (quantity > currentStock.quantity) {
           throw new Error(
-            `Stok tidak cukup untuk produk ${product_id}. Stok tersedia: ${currentQuantity}, diminta: ${quantity}`
+            `Stok tidak cukup untuk produk ${product_id}. Stok tersedia: ${currentStock.quantity}, diminta: ${quantity}`
           );
         }
 
@@ -47,21 +73,15 @@ export async function POST(req) {
             sales_id: sale.sale_id,
             product_id,
             quantity,
-            price,
+            price: totalPrice,
           },
         });
         salesItems.push(salesItem);
 
-        // Hitung stok baru
-        const newQuantity = currentQuantity - quantity;
-
-        // Buat record stok baru
-        await prismaTx.stock.create({
-          data: {
-            product_id,
-            driver_id,
-            quantity: newQuantity,
-          },
+        // Update stok hari ini
+        await prismaTx.stock.update({
+          where: { stock_id: currentStock.stock_id },
+          data: { quantity: currentStock.quantity - quantity },
         });
       }
 
@@ -83,13 +103,15 @@ export async function POST(req) {
 }
 
 
+
 export async function GET() {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Waktu sekarang di Jakarta
+    const nowJakarta = DateTime.now().setZone('Asia/Jakarta');
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // Start & end of day di WIB
+    const startOfDay = nowJakarta.startOf('day').toJSDate();
+    const endOfDay = nowJakarta.endOf('day').toJSDate();
 
     // Ambil semua sales item hari ini beserta product untuk costPrice
     const salesItems = await prisma.salesItem.findMany({
@@ -111,14 +133,14 @@ export async function GET() {
     let totalMargin = 0;
 
     salesItems.forEach(item => {
-      totalRevenue += item.price * item.quantity;           
-      totalQuantity += item.quantity;                    
-      totalMargin += (item.price - (item.Product.costPrice + 1797.67)) * item.quantity; 
+      totalRevenue += item.price;
+      totalQuantity += item.quantity;
+      totalMargin += (item.price - ((item.Product.costPrice + 1797.67)*item.quantity));
     });
 
     return NextResponse.json(
       {
-        date: startOfDay.toISOString().split('T')[0], 
+        date: nowJakarta.toFormat('yyyy-MM-dd'), // tanggal sesuai WIB
         totalRevenue,
         totalQuantity,
         totalMargin,
@@ -129,3 +151,4 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

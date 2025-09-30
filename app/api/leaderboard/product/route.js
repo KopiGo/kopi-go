@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { DateTime } from 'luxon';
 
 export async function GET() {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // waktu sekarang di Jakarta
+    const nowJakarta = DateTime.now().setZone('Asia/Jakarta');
 
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // startOfDay & endOfDay di Jakarta
+    const startOfDay = nowJakarta.startOf('day').toJSDate();
+    const endOfDay = nowJakarta.endOf('day').toJSDate();
 
     // ambil semua sales items hari ini beserta product
     const salesItems = await prisma.SalesItem.findMany({
@@ -30,7 +32,7 @@ export async function GET() {
     salesItems.forEach(item => {
       const productId = item.product_id;
       const productName = item.Product.name;
-      const productImage = item.Product.image
+      const productImage = item.Product.image;
 
       if (!productMap[productId]) {
         productMap[productId] = {
@@ -56,6 +58,7 @@ export async function GET() {
       return a.productName.localeCompare(b.productName);
     });
 
+    // ambil top 3
     leaderboard = leaderboard.slice(0, 3);
 
     return NextResponse.json(leaderboard, { status: 200 });
