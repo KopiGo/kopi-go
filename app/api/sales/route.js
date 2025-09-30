@@ -5,11 +5,18 @@ import { DateTime } from 'luxon';
 
 export async function POST(req) {
   try {
-    const { driver_id, items } = await req.json();
+    const { driver_id, items, payment_method = 'CASH' } = await req.json();
 
     if (!driver_id || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: 'Driver ID and items array are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!['QRIS', 'CASH'].includes(payment_method)) {
+      return NextResponse.json(
+        { error: 'Invalid payment method. Must be QRIS or CASH' },
         { status: 400 }
       );
     }
@@ -23,6 +30,7 @@ export async function POST(req) {
         data: {
           driver_id,
           sale_timestamp: saleTime,
+          payment: payment_method,
         },
       });
 
