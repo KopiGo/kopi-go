@@ -4,24 +4,25 @@ import { DateTime } from 'luxon';
 
 export async function POST(req) {
   try {
-    const { driver_id, items } = await req.json();
+    const { driver_id, items, payment_method } = await req.json();
 
-    if (!driver_id || !items || !Array.isArray(items) || items.length === 0) {
+    if (!driver_id || !items || !Array.isArray(items) || items.length === 0 || !payment_method) {
       return NextResponse.json(
-        { error: 'Driver ID and items array are required' },
+        { error: 'Driver ID, items, dan payment_method wajib diisi' },
         { status: 400 }
       );
     }
 
     const result = await prisma.$transaction(async (prismaTx) => {
-      // Waktu sale di WIB
       const saleTime = DateTime.now().setZone('Asia/Jakarta').toJSDate();
+      const todayDate = DateTime.now().setZone('Asia/Jakarta').toISODate(); // YYYY-MM-DD
 
-      // Buat sales record
+      // 🧾 Buat record sales
       const sale = await prismaTx.sales.create({
         data: {
           driver_id,
           sale_timestamp: saleTime,
+          payment:payment_method,
         },
       });
 
@@ -30,24 +31,38 @@ export async function POST(req) {
       for (const item of items) {
         const { product_id, quantity } = item;
 
-        // Ambil harga product
+        // Ambil data produk
         const product = await prismaTx.product.findUnique({
           where: { product_id },
         });
         if (!product) throw new Error(`Produk ${product_id} tidak ditemukan`);
 
-        const pricePerItem = product.price; // harga satuan
-        const totalPrice = pricePerItem * quantity; // harga total = price × quantity
+        const pricePerItem = product.price;
+        const totalPrice = pricePerItem * quantity;
 
-        // Ambil stok terbaru
+        // Cek stok terbaru berdasarkan tanggal, produk, dan driver
+        const todayStart = DateTime.fromISO(todayDate, { zone: 'Asia/Jakarta' }).startOf('day').toJSDate();
+        const todayEnd = DateTime.fromISO(todayDate, { zone: 'Asia/Jakarta' }).endOf('day').toJSDate();
+
         const currentStock = await prismaTx.stock.findFirst({
-          where: { product_id, driver_id },
+          where: {
+            product_id,
+            driver_id,
+            created_at: {
+              gte: todayStart,
+              lte: todayEnd,
+            },
+          },
           orderBy: { created_at: 'desc' },
         });
 
-        const currentQuantity = currentStock ? currentStock.quantity : 0;
+        if (!currentStock) {
+          throw new Error(`Belum ada stok hari ini untuk produk ${product_id}`);
+        }
 
-        // 🔹 Validasi stok cukup
+        const currentQuantity = currentStock.quantity;
+
+        // Validasi stok cukup
         if (quantity > currentQuantity) {
           throw new Error(
             `Stok tidak cukup untuk produk ${product_id}. Stok tersedia: ${currentQuantity}, diminta: ${quantity}`
@@ -60,21 +75,17 @@ export async function POST(req) {
             sales_id: sale.sale_id,
             product_id,
             quantity,
-            price: totalPrice, // pakai harga total
+            price: totalPrice,
           },
         });
         salesItems.push(salesItem);
 
-        // Hitung stok baru
+        // Hitung stok baru dan update
         const newQuantity = currentQuantity - quantity;
 
-        // Buat record stok baru
-        await prismaTx.stock.create({
-          data: {
-            product_id,
-            driver_id,
-            quantity: newQuantity,
-          },
+        await prismaTx.stock.update({
+          where: { stock_id: currentStock.stock_id },
+          data: { quantity: newQuantity },
         });
       }
 
@@ -85,6 +96,7 @@ export async function POST(req) {
       {
         message: 'Order created successfully',
         sale_id: result.sale.sale_id,
+        payment_method: result.sale.payment_method,
         items_count: result.salesItems.length,
       },
       { status: 201 }
@@ -94,6 +106,7 @@ export async function POST(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 
 export async function GET() {
